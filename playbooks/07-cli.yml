@@ -1,0 +1,22 @@
+---
+- name: Host cliente
+  hosts: host_cliente
+  become: true
+  tasks:
+    - name: Instalar firefox-esr e xauth
+      ansible.builtin.apt:
+        name: [firefox-esr, xauth]
+    - name: Permitir X11 forwarding no SSH
+      ansible.builtin.copy:
+        content: "X11Forwarding yes\nX11UseLocalhost yes\n"
+        dest: /etc/ssh/sshd_config.d/01-x11.conf
+        mode: "0644"
+      notify: Reiniciar ssh
+    - name: Validar o SSH
+      ansible.builtin.command: /usr/sbin/sshd -t
+      changed_when: false
+  handlers:
+    - name: Reiniciar ssh
+      ansible.builtin.service:
+        name: ssh
+        state: restarted

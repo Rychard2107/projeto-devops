@@ -1,0 +1,11 @@
+options {
+    directory "/var/cache/bind";
+    listen-on { 127.0.0.1; {{ ip_arq }}; };
+    listen-on-v6 { none; };
+    allow-query     { localhost; {{ rede }}; };
+    allow-recursion { localhost; {{ rede }}; };
+    recursion yes;
+    forwarders { {% for f in dns_forwarders %}{{ f }}; {% endfor %}};
+    forward only;
+    dnssec-validation no;
+};

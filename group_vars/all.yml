@@ -1,0 +1,46 @@
+---
+nome1: rychardson
+nome2: zafler
+matricula_nome1: "20251380026"
+matricula_nome2: "20251380026"
+disciplina: "Administração de Sistemas Abertos"
+professor: "Leonidas Lima"
+instituicao: "IFPB - Campus João Pessoa"
+
+dominio: "{{ nome1 }}.{{ nome2 }}.devops"
+rede: "192.168.56.0/24"
+rede_endereco: "192.168.56.0"
+rede_mascara: "255.255.255.0"
+rede_broadcast: "192.168.56.255"
+gateway: "192.168.56.1"
+interface_privada: eth1
+
+ip_arq: "192.168.56.126"
+ip_db:  "192.168.56.127"
+ip_app: "192.168.56.167"
+mac_db:  "08:00:27:00:01:27"
+mac_app: "08:00:27:00:01:67"
+
+dhcp_faixa_inicio: "192.168.56.50"
+dhcp_faixa_fim: "192.168.56.100"
+dhcp_lease_padrao: 180
+dhcp_lease_maximo: 3600
+dns_forwarders: ["1.1.1.1", "8.8.8.8"]
+dns_serial: 2026102701
+
+fuso_horario: America/Recife
+servidor_ntp: pool.ntp.br
+grupo_acesso: ifpb
+usuarios: ["{{ nome1 }}", "{{ nome2 }}"]
+mensagem_ssh: "Acesso apenas para pessoas com autorização expressa!!!"
+
+lvm_discos: ["/dev/sdb", "/dev/sdc", "/dev/sdd"]
+lvm_vg: dados
+lvm_lv: ifpb
+lvm_tamanho: 15g
+lvm_ponto_montagem: /dados
+nfs_diretorio: /dados/nfs
+nfs_usuario: nfs-ifpb
+nfs_uid: 1500
+nfs_gid: 1500
+nfs_ponto_cliente: /var/nfs

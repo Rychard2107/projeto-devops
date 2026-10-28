@@ -1,0 +1,23 @@
+---
+- name: Obter IP via DHCP da arq
+  hosts: clientes_nfs
+  become: true
+  tasks:
+    - name: Já tem IP da rede 192.168.56.0/24?
+      ansible.builtin.shell: "ip -4 -o addr show dev {{ interface_privada }} | grep -q ' 192.168.56.'"
+      register: ip_privado
+      changed_when: false
+      failed_when: false
+
+    - name: Reiniciar a interface para pedir IP ao DHCP
+      ansible.builtin.shell: "ifdown --force {{ interface_privada }} || true; ifup {{ interface_privada }}"
+      when: ip_privado.rc != 0
+
+    - name: Ler o IP obtido
+      ansible.builtin.shell: "ip -4 -o addr show dev {{ interface_privada }} | awk '{print $4}'"
+      register: ip_obtido
+      changed_when: false
+
+    - name: Mostrar o IP
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} -> {{ ip_obtido.stdout }}"

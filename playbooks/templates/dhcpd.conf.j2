@@ -1,0 +1,22 @@
+authoritative;
+option domain-name "{{ dominio }}";
+option domain-name-servers {{ ip_arq }};
+default-lease-time {{ dhcp_lease_padrao }};
+max-lease-time {{ dhcp_lease_maximo }};
+
+subnet {{ rede_endereco }} netmask {{ rede_mascara }} {
+    range {{ dhcp_faixa_inicio }} {{ dhcp_faixa_fim }};
+    option routers {{ gateway }};
+    option subnet-mask {{ rede_mascara }};
+    option broadcast-address {{ rede_broadcast }};
+}
+
+host db {
+    hardware ethernet {{ mac_db }};
+    fixed-address {{ ip_db }};
+}
+
+host app {
+    hardware ethernet {{ mac_app }};
+    fixed-address {{ ip_app }};
+}

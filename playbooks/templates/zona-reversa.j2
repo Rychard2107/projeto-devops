@@ -1,0 +1,7 @@
+$TTL 604800
+@   IN  SOA arq.{{ dominio }}. admin.{{ dominio }}. (
+            {{ dns_serial }} 604800 86400 2419200 604800 )
+@   IN  NS  arq.{{ dominio }}.
+{{ ip_arq.split('.')[3] }}  IN  PTR arq.{{ dominio }}.
+{{ ip_db.split('.')[3] }}  IN  PTR db.{{ dominio }}.
+{{ ip_app.split('.')[3] }}  IN  PTR app.{{ dominio }}.
