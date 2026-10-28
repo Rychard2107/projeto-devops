@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><title>Projeto 01 - DevOps com Vagrant e Ansible</title></head>
+<body>
+  <h1>Projeto 01 - DevOps com Vagrant e Ansible</h1>
+  <p>{{ instituicao }}<br>Disciplina: {{ disciplina }}<br>Professor: {{ professor }}</p>
+  <h2>Descrição do projeto</h2>
+  <p>Infraestrutura virtual com quatro máquinas Debian (arq, db, app e cli), provisionada
+     com Vagrant (VirtualBox) e configurada com Ansible: SSH seguro, sudo, NTP, DHCP e DNS,
+     LVM, NFS com autofs, MariaDB e Apache.</p>
+  <h2>Integrantes</h2>
+  <ul>
+    <li>{{ nome1 | capitalize }} - matrícula {{ matricula_nome1 }}</li>
+    <li>{{ nome2 | capitalize }} - matrícula {{ matricula_nome2 }}</li>
+  </ul>
+</body>
+</html>

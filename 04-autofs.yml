@@ -1,0 +1,34 @@
+---
+- name: autofs nos clientes NFS (db, app, cli)
+  hosts: clientes_nfs
+  become: true
+  tasks:
+    - name: Instalar autofs e cliente NFS
+      ansible.builtin.apt:
+        name: [autofs, nfs-common]
+
+    - name: Mapa direto no auto.master.d
+      ansible.builtin.copy:
+        content: "/- /etc/auto.nfs-ifpb --timeout=60\n"
+        dest: /etc/auto.master.d/nfs-ifpb.autofs
+        mode: "0644"
+      notify: Reiniciar autofs
+
+    - name: Mapa do NFS (arq:/dados/nfs em /var/nfs)
+      ansible.builtin.copy:
+        content: "{{ nfs_ponto_cliente }} -fstype=nfs4,rw,soft {{ ip_arq }}:{{ nfs_diretorio }}\n"
+        dest: /etc/auto.nfs-ifpb
+        mode: "0644"
+      notify: Reiniciar autofs
+
+    - name: Habilitar o autofs
+      ansible.builtin.service:
+        name: autofs
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reiniciar autofs
+      ansible.builtin.service:
+        name: autofs
+        state: restarted

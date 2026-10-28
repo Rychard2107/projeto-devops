@@ -1,0 +1,8 @@
+---
+- import_playbook: 01-comum.yml
+- import_playbook: 02-arq.yml
+- import_playbook: 03-rede-clientes.yml
+- import_playbook: 04-autofs.yml
+- import_playbook: 05-db.yml
+- import_playbook: 06-app.yml
+- import_playbook: 07-cli.yml

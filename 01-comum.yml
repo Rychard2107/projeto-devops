@@ -1,0 +1,113 @@
+---
+- name: Gerar chaves SSH dos usuários no computador de controle
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Gerar par de chaves ed25519 para cada integrante
+      ansible.builtin.command:
+        cmd: "ssh-keygen -t ed25519 -N '' -C '{{ item }}@{{ dominio }}' -f {{ playbook_dir }}/chaves/{{ item }}"
+        creates: "{{ playbook_dir }}/chaves/{{ item }}"
+      loop: "{{ usuarios }}"
+
+- name: Configuração comum
+  hosts: all
+  become: true
+  tasks:
+    - name: Update e upgrade do sistema
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+
+    - name: Instalar chrony, sudo e cliente NFS
+      ansible.builtin.apt:
+        name: [chrony, sudo, nfs-common]
+        state: present
+
+    - name: Ajustar o fuso horário
+      community.general.timezone:
+        name: "{{ fuso_horario }}"
+
+    - name: Configurar chrony com pool.ntp.br
+      ansible.builtin.template:
+        src: chrony.conf.j2
+        dest: /etc/chrony/chrony.conf
+        mode: "0644"
+      notify: Reiniciar chrony
+
+    - name: Habilitar o chrony
+      ansible.builtin.service:
+        name: chrony
+        state: started
+        enabled: true
+
+    - name: Criar o grupo ifpb
+      ansible.builtin.group:
+        name: "{{ grupo_acesso }}"
+
+    - name: Garantir o grupo vagrant
+      ansible.builtin.group:
+        name: vagrant
+
+    - name: Manter vagrant no grupo vagrant (evita bloqueio pelo AllowGroups)
+      ansible.builtin.user:
+        name: vagrant
+        groups: vagrant
+        append: true
+
+    - name: Criar os usuários da equipe no grupo ifpb
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: "{{ grupo_acesso }}"
+        append: true
+        shell: /bin/bash
+      loop: "{{ usuarios }}"
+
+    - name: Autorizar a chave pública de cada usuário
+      ansible.posix.authorized_key:
+        user: "{{ item }}"
+        key: "{{ lookup('file', playbook_dir + '/chaves/' + item + '.pub') }}"
+      loop: "{{ usuarios }}"
+
+    - name: Grupo ifpb com root via sudo
+      ansible.builtin.copy:
+        content: "%{{ grupo_acesso }} ALL=(ALL:ALL) NOPASSWD: ALL\n"
+        dest: "/etc/sudoers.d/{{ grupo_acesso }}"
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Banner do SSH
+      ansible.builtin.copy:
+        content: "{{ mensagem_ssh }}\n"
+        dest: /etc/ssh/banner
+        mode: "0644"
+
+    - name: Configurar o SSH (drop-in lido antes do arquivo principal)
+      ansible.builtin.template:
+        src: sshd_ifpb.conf.j2
+        dest: /etc/ssh/sshd_config.d/00-ifpb.conf
+        mode: "0644"
+      notify: Reiniciar ssh
+
+    - name: Validar a configuração do SSH
+      ansible.builtin.command: /usr/sbin/sshd -t
+      changed_when: false
+
+    - name: Usar o DNS da arq e o domínio do projeto
+      ansible.builtin.blockinfile:
+        path: /etc/dhcp/dhclient.conf
+        marker: "# {mark} ANSIBLE - DNS do projeto"
+        block: |
+          prepend domain-name-servers {{ ip_arq }};
+          supersede domain-search "{{ dominio }}";
+
+  handlers:
+    - name: Reiniciar chrony
+      ansible.builtin.service:
+        name: chrony
+        state: restarted
+    - name: Reiniciar ssh
+      ansible.builtin.service:
+        name: ssh
+        state: restarted

@@ -1,0 +1,13 @@
+---
+- name: Servidor de banco de dados
+  hosts: servidor_db
+  become: true
+  tasks:
+    - name: Instalar o MariaDB
+      ansible.builtin.apt:
+        name: mariadb-server
+    - name: Habilitar o MariaDB
+      ansible.builtin.service:
+        name: mariadb
+        state: started
+        enabled: true

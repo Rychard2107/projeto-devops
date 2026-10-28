@@ -1,0 +1,8 @@
+# Chaves SSH (privadas e públicas): o playbook 01 gera de novo
+chaves/*
+!chaves/.gitkeep
+
+# Estado local do Vagrant e lixo de execução
+.vagrant/
+*.retry
+*.log
