@@ -16,7 +16,7 @@
 
     - name: Mapa do NFS (arq:/dados/nfs em /var/nfs)
       ansible.builtin.copy:
-        content: "{{ nfs_ponto_cliente }} -fstype=nfs4,rw,soft {{ ip_arq }}:{{ nfs_diretorio }}\n"
+        content: "{{ nfs_ponto_cliente }} -fstype=nfs4,rw,soft,timeo=50,retrans=2 {{ ip_arq }}:{{ nfs_diretorio }}\n"
         dest: /etc/auto.nfs-ifpb
         mode: "0644"
       notify: Reiniciar autofs

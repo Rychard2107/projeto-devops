@@ -26,7 +26,7 @@ dhcp_faixa_fim: "192.168.56.100"
 dhcp_lease_padrao: 180
 dhcp_lease_maximo: 3600
 dns_forwarders: ["1.1.1.1", "8.8.8.8"]
-dns_serial: 2026102701
+dns_serial: 2026111601
 
 fuso_horario: America/Recife
 servidor_ntp: pool.ntp.br
@@ -44,3 +44,4 @@ nfs_usuario: nfs-ifpb
 nfs_uid: 1500
 nfs_gid: 1500
 nfs_ponto_cliente: /var/nfs
+ip_cli: "192.168.56.50"
