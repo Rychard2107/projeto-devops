@@ -17,17 +17,12 @@ Vagrant.configure("2") do |config|
     vb.check_guest_additions = false
   end
 
-  # Gatilho: desabilita o DHCP do VirtualBox (tenta as sintaxes do VBox 7 e 6)
-  config.trigger.before :"VagrantPlugins::ProviderVirtualBox::Action::Boot", type: :action do |t|
-    t.name = "Desabilitando o servidor DHCP do VirtualBox"
-    t.ruby do |_env, _machine|
-      [["--network", "HostInterfaceNetworking-vboxnet0"], ["--interface", "vboxnet0"],
-       ["--netname", "HostInterfaceNetworking-vboxnet0"], ["--ifname", "vboxnet0"]].each do |args|
-        break if system("VBoxManage", "dhcpserver", "remove", *args, out: File::NULL, err: File::NULL)
-      end
-    end
+  config.trigger.before :"Vagrant::Action::Builtin::WaitForCommunicator", type: :action do |t|
+    t.name = "Parando o servidor DHCP do VirtualBox"
+    t.warn = "Interrompe o servidor DHCP do VirtualBox (o DHCP da rede é da arq)"
+    t.run = { inline: "vboxmanage dhcpserver stop --interface vboxnet0" }
+    t.on_error = :continue
   end
-
   config.vm.define "arq" do |m|
     m.vm.hostname = "arq.#{DOMINIO}"
     m.vm.network "private_network", ip: IP_ARQ
