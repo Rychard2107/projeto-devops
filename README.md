@@ -10,7 +10,9 @@
 
 O projeto cria, com **Vagrant** (provider VirtualBox), quatro máquinas virtuais
 Debian 12 (`debian/bookworm64`) e as configura automaticamente com **Ansible**,
-seguindo a ideia de Infraestrutura como Código.
+seguindo a ideia de Infraestrutura como Código. O provisionador Ansible do
+Vagrant executa `playbooks/site.yml` ao iniciar a VM `cli`, depois que as quatro
+VMs já foram iniciadas.
 
 | VM  | Função | IP (192.168.56.0/24) | Hostname |
 |-----|--------|----------------------|----------|
@@ -75,16 +77,17 @@ Se o Vagrant reclamar de `vm.disk`: `export VAGRANT_EXPERIMENTAL="disks"`.
 
 ## Execução
 
-Execute sempre a partir da raiz do projeto (onde estão `ansible.cfg` e `inventario.ini`):
+Execute a partir da raiz do projeto (onde estão `ansible.cfg` e `inventario.ini`):
 
 ```bash
-vagrant up                          # sobe as 4 VMs (db, app e cli demoram mais: ainda não há DHCP)
-ansible all -m ping                 # testa a conexão
-ansible-playbook playbooks/site.yml # configura tudo
+vagrant up # sobe as 4 VMs e executa o playbook automaticamente
 ```
 
-Para executar uma etapa isolada: `ansible-playbook playbooks/02-arq.yml`.
-Para validar a sintaxe: `ansible-playbook playbooks/site.yml --syntax-check`.
+Para reaplicar a configuração depois que as VMs estiverem iniciadas:
+`vagrant provision cli`.
+Para executar uma etapa isolada ou validar a sintaxe, use Ansible diretamente,
+por exemplo: `ansible-playbook playbooks/02-arq.yml` ou
+`ansible-playbook playbooks/site.yml --syntax-check`.
 
 ## Acesso às máquinas
 

@@ -6,3 +6,6 @@ keys/*
 .vagrant/
 *.retry
 *.log
+
+# Teste de validação local
+/teste.py

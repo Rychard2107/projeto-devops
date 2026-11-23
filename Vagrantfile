@@ -47,5 +47,11 @@ Vagrant.configure("2") do |config|
     m.vm.network "private_network", type: "dhcp", ip: "192.168.56.1"
     m.vm.network "forwarded_port", guest: 22, host: 2224, host_ip: "127.0.0.1", id: "ssh"
     m.vm.provider("virtualbox") { |vb| vb.memory = 1024 }                 # cli com 1024 MB
+
+    m.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbooks/site.yml"
+      ansible.inventory_path = "inventario.ini"
+      ansible.limit = "all,localhost"
+    end
   end
 end
