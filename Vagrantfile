@@ -1,57 +1,74 @@
 # -*- mode: ruby -*-
-NOME1   = "rychardson"
-NOME2   = "zafler"
-DOMINIO = "#{NOME1}.#{NOME2}.devops"
-IP_ARQ  = "192.168.56.126"
-MAC_DB  = "080027000127"
-MAC_APP = "080027000167"
+# vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
+  # General Vagrant VM configuration.
   config.vm.box = "debian/bookworm64"
-  config.ssh.insert_key = false                         # geração de chaves desativada
+  config.ssh.insert_key = false
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
+  end
   config.vm.synced_folder ".", "/vagrant", disabled: true
-
-  config.vm.provider "virtualbox" do |vb|
-    vb.memory = 512
-    vb.linked_clone = true
-    vb.check_guest_additions = false
+  config.vm.provider :virtualbox do |v|
+    v.memory = 512
+    v.linked_clone = true
+    v.check_guest_additions = false
   end
 
-  config.trigger.before :"Vagrant::Action::Builtin::WaitForCommunicator", type: :action do |t|
-    t.name = "Parando o servidor DHCP do VirtualBox"
-    t.warn = "Interrompe o servidor DHCP do VirtualBox (o DHCP da rede é da arq)"
-    t.run = { inline: "vboxmanage dhcpserver stop --interface vboxnet0" }
-    t.on_error = :continue
-  end
-  config.vm.define "arq" do |m|
-    m.vm.hostname = "arq.#{DOMINIO}"
-    m.vm.network "private_network", ip: IP_ARQ
-    m.vm.network "forwarded_port", guest: 22, host: 2221, host_ip: "127.0.0.1", id: "ssh"
-    (1..3).each { |i| m.vm.disk :disk, size: "10GB", name: "dados#{i}" }   # 3 discos de 10 GB
+  config.trigger.before :"Vagrant::Action::Builtin::WaitForCommunicator", type: :action do|t|
+    t.warn = "Iterrompe o servidor dhcp do virtualbox"
+    t.run = {inline: "vboxmanage dhcpserver stop --interface vboxnet0"}
   end
 
-  config.vm.define "db" do |m|
-    m.vm.hostname = "db.#{DOMINIO}"
-    m.vm.network "private_network", type: "dhcp", ip: "192.168.56.1", mac: MAC_DB
-    m.vm.network "forwarded_port", guest: 22, host: 2222, host_ip: "127.0.0.1", id: "ssh"
+  # Configuração comum a todas as máquinas (roda antes da configuração de cada uma).
+  config.vm.provision "ansible" do |ansible|
+    ansible.compatibility_mode = "2.0"
+    ansible.playbook = "playbooks/comum.yml"
   end
 
-  config.vm.define "app" do |m|
-    m.vm.hostname = "app.#{DOMINIO}"
-    m.vm.network "private_network", type: "dhcp", ip: "192.168.56.1", mac: MAC_APP
-    m.vm.network "forwarded_port", guest: 22, host: 2223, host_ip: "127.0.0.1", id: "ssh"
+  # File server (DHCP, DNS, LVM e NFS). Precisa ser a primeira, pois as outras dependem do DHCP.
+  config.vm.define "arq" do |arq|
+    arq.vm.hostname = "arq.rychardson.zafler.devops"
+    arq.vm.network :private_network, ip: "192.168.56.126"
+    (0..2).each do |x|
+      arq.vm.disk :disk, size: "10GB", name: "disk-#{x}"
+    end
+    arq.vm.provision "ansible" do |ansible|
+      ansible.compatibility_mode = "2.0"
+      ansible.playbook = "playbooks/arq.yml"
+    end
   end
 
-  config.vm.define "cli" do |m|
-    m.vm.hostname = "cli.#{DOMINIO}"
-    m.vm.network "private_network", type: "dhcp", ip: "192.168.56.1"
-    m.vm.network "forwarded_port", guest: 22, host: 2224, host_ip: "127.0.0.1", id: "ssh"
-    m.vm.provider("virtualbox") { |vb| vb.memory = 1024 }                 # cli com 1024 MB
+  # Database server.
+  config.vm.define "db" do |db|
+    db.vm.hostname = "db.rychardson.zafler.devops"
+    db.vm.network :private_network, mac: "0800273A0001", type: "dhcp"
+    db.vm.provision "ansible" do |ansible|
+      ansible.compatibility_mode = "2.0"
+      ansible.playbook = "playbooks/db.yml"
+    end
+  end
 
-    m.vm.provision "ansible" do |ansible|
-      ansible.playbook = "playbooks/site.yml"
-      ansible.inventory_path = "inventario.ini"
-      ansible.limit = "all,localhost"
+  # Application server.
+  config.vm.define "app" do |app|
+    app.vm.hostname = "app.rychardson.zafler.devops"
+    app.vm.network :private_network, mac: "0800273A0002", type: "dhcp"
+    app.vm.provision "ansible" do |ansible|
+      ansible.compatibility_mode = "2.0"
+      ansible.playbook = "playbooks/app.yml"
+    end
+  end
+
+  # Client.
+  config.vm.define "cli" do |cli|
+    cli.vm.hostname = "cli.rychardson.zafler.devops"
+    cli.vm.network :private_network, type: "dhcp"
+    cli.vm.provider :virtualbox do |v|
+      v.memory = 1024
+    end
+    cli.vm.provision "ansible" do |ansible|
+      ansible.compatibility_mode = "2.0"
+      ansible.playbook = "playbooks/cli.yml"
     end
   end
 end

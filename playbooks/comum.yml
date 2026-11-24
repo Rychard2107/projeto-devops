@@ -1,0 +1,112 @@
+---
+- name: Configuração comum a todas as máquinas.
+  hosts: all
+  become: true
+  vars:
+    usuarios:
+      - rychardson
+      - zafler
+  handlers:
+    - name: restart chrony
+      service:
+        name: chrony
+        state: restarted
+
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted
+  tasks:
+    - name: Atualiza o sistema operacional.
+      apt:
+        update_cache: yes
+
+    # NTP
+    - name: Instala o chrony.
+      package:
+        name: chrony
+        state: present
+
+    - name: Configura o chrony para usar o pool.ntp.br.
+      lineinfile:
+        dest: "/etc/chrony/chrony.conf"
+        regexp: "^pool "
+        line: "pool pool.ntp.br iburst"
+        state: present
+      notify: restart chrony
+
+    - name: Habilita o serviço do chrony.
+      service:
+        name: chrony
+        enabled: yes
+
+    - name: Ajusta a zona de tempo.
+      timezone:
+        name: America/Recife
+
+    # Grupo, usuários e chaves ssh
+    - name: Cria o grupo ifpb.
+      group:
+        name: ifpb
+        state: present
+
+    - name: Cria os usuários.
+      user:
+        name: "{{ item }}"
+        groups: ifpb
+        shell: /bin/bash
+      loop: "{{ usuarios }}"
+
+    - name: Cria o diretório de chaves na máquina real.
+      file:
+        path: "{{ playbook_dir }}/../keys"
+        state: directory
+        mode: 0700
+      delegate_to: localhost
+      become: false
+
+    - name: Gera as chaves ssh dos usuários na máquina real.
+      command: ssh-keygen -q -t ed25519 -N "" -f {{ playbook_dir }}/../keys/{{ item }}
+      args:
+        creates: "{{ playbook_dir }}/../keys/{{ item }}"
+      delegate_to: localhost
+      become: false
+      loop: "{{ usuarios }}"
+
+    - name: Instala a chave pública de cada usuário.
+      authorized_key:
+        user: "{{ item }}"
+        key: "{{ lookup('file', playbook_dir + '/../keys/' + item + '.pub') }}"
+      loop: "{{ usuarios }}"
+
+    # Sudo e SSH
+    - name: Permite sudo sem senha ao grupo ifpb.
+      copy:
+        content: "%ifpb ALL=(ALL) NOPASSWD:ALL\n"
+        dest: "/etc/sudoers.d/ifpb"
+        mode: 0440
+        validate: "visudo -cf %s"
+
+    - name: Cria a mensagem de saudação do ssh.
+      copy:
+        content: "Acesso apenas para pessoas com autorização expressa!!!\n"
+        dest: "/etc/issue.net"
+        mode: 0644
+
+    - name: Configura o servidor ssh.
+      copy:
+        dest: "/etc/ssh/sshd_config.d/ifpb.conf"
+        mode: 0644
+        content: |
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PubkeyAuthentication yes
+          PermitRootLogin no
+          AllowGroups vagrant ifpb
+          Banner /etc/issue.net
+      notify: restart ssh
+
+    - name: Instala o cliente nfs.
+      package:
+        name: nfs-common
+        state: present

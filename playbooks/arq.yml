@@ -1,0 +1,142 @@
+---
+- name: Configura o servidor de arquivos (dhcp, dns, lvm e nfs).
+  hosts: arq
+  become: true
+  handlers:
+    - name: restart dhcp
+      service:
+        name: isc-dhcp-server
+        state: restarted
+
+    - name: restart bind
+      service:
+        name: bind9
+        state: restarted
+
+    - name: restart nfs
+      service:
+        name: nfs-kernel-server
+        state: restarted
+  tasks:
+    - name: Instala os pacotes dos serviços.
+      package:
+        name:
+          - isc-dhcp-server
+          - bind9
+          - bind9utils
+          - lvm2
+          - nfs-kernel-server
+        update_cache: yes
+        state: present
+
+    # DHCP
+    - name: Copia o arquivo de configuração dhcp.
+      copy:
+        src: "dhcpd.conf"
+        dest: "/etc/dhcp/dhcpd.conf"
+        mode: 0664
+      notify: restart dhcp
+
+    - name: Ajusta a configuração default do dhcp.
+      lineinfile:
+        dest: "/etc/default/isc-dhcp-server"
+        regexp: "^INTERFACESv4"
+        line: 'INTERFACESv4="eth1"'
+        state: present
+      notify: restart dhcp
+
+    - name: Habilita o serviço do dhcp.
+      service:
+        name: isc-dhcp-server
+        enabled: yes
+
+    # DNS
+    - name: Copia o arquivo de configuração named.conf.options.
+      copy:
+        src: "named.conf.options"
+        dest: "/etc/bind/named.conf.options"
+        mode: 0664
+      notify: restart bind
+
+    - name: Copia o arquivo de configuração named.conf.internal-zones.
+      copy:
+        src: "named.conf.internal-zones"
+        dest: "/etc/bind/named.conf.internal-zones"
+        mode: 0664
+      notify: restart bind
+
+    - name: Copia o arquivo de zona direta do DNS rychardson.zafler.devops.db.
+      copy:
+        src: "rychardson.zafler.devops.db"
+        dest: "/etc/bind/rychardson.zafler.devops.db"
+        mode: 0664
+      notify: restart bind
+
+    - name: Copia o arquivo de zona reversa do DNS 56.168.192.db.
+      copy:
+        src: "56.168.192.db"
+        dest: "/etc/bind/56.168.192.db"
+        mode: 0664
+      notify: restart bind
+
+    - name: Ajusta a configuração default do bind9 para incluir zonas internas.
+      lineinfile:
+        dest: "/etc/bind/named.conf"
+        line: 'include "/etc/bind/named.conf.internal-zones";'
+        state: present
+      notify: restart bind
+
+    - name: Habilita o serviço do bind9.
+      service:
+        name: bind9
+        enabled: yes
+
+    # LVM
+    - name: Cria o volume group dados com os 3 discos.
+      lvg:
+        vg: dados
+        pvs: /dev/sdb,/dev/sdc,/dev/sdd
+
+    - name: Cria o logical volume ifpb.
+      lvol:
+        vg: dados
+        lv: ifpb
+        size: 15g
+
+    - name: Formata o logical volume com ext4.
+      filesystem:
+        fstype: ext4
+        dev: /dev/dados/ifpb
+
+    - name: Monta o logical volume em /dados.
+      mount:
+        path: /dados
+        src: /dev/dados/ifpb
+        fstype: ext4
+        state: mounted
+
+    # NFS
+    - name: Cria o usuário nfs-ifpb sem shell.
+      user:
+        name: nfs-ifpb
+        uid: 2000
+        shell: /usr/sbin/nologin
+
+    - name: Cria o diretório compartilhado, com escrita apenas para nfs-ifpb.
+      file:
+        path: /dados/nfs
+        state: directory
+        owner: nfs-ifpb
+        mode: 0755
+
+    - name: Exporta o diretório para a rede interna (todos viram nfs-ifpb, gravação síncrona).
+      copy:
+        content: "/dados/nfs 192.168.56.0/24(rw,sync,all_squash,anonuid=2000,anongid=2000,no_subtree_check)\n"
+        dest: "/etc/exports"
+        mode: 0644
+      notify: restart nfs
+
+    - name: Habilita o serviço do nfs.
+      service:
+        name: nfs-kernel-server
+        enabled: yes

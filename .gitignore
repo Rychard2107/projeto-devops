@@ -1,11 +1,2 @@
-# Chaves SSH (privadas e públicas): o playbook 01 gera de novo
-keys/*
-!keys/.gitkeep
-
-# Estado local do Vagrant e lixo de execução
+keys/
 .vagrant/
-*.retry
-*.log
-
-# Teste de validação local
-/teste.py

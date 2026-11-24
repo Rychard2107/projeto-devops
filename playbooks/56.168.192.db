@@ -1,0 +1,12 @@
+$TTL 86400
+@ IN SOA arq.rychardson.zafler.devops. root.rychardson.zafler.devops. (
+  2026112401 ;Serial
+  3600 ;Refresh
+  1800 ;Retry
+  604800 ;Expire
+  86400 ;Minimum TTL
+)
+  IN NS arq.rychardson.zafler.devops.
+126 IN PTR arq.rychardson.zafler.devops.
+127 IN PTR db.rychardson.zafler.devops.
+128 IN PTR app.rychardson.zafler.devops.

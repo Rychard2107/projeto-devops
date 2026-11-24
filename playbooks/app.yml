@@ -1,0 +1,37 @@
+---
+- import_playbook: autofs.yml
+
+- name: Configura o servidor de aplicação.
+  hosts: app
+  become: true
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted
+  tasks:
+    - name: Instala o apache.
+      package:
+        name: apache2
+        update_cache: yes
+        state: present
+
+    - name: Copia o html do site.
+      copy:
+        src: index.html
+        dest: "/var/www/html/index.html"
+        mode: 0664
+      notify: restart apache
+
+    - name: Habilita o serviço do apache.
+      service:
+        name: apache2
+        enabled: yes
+
+    - name: Ajusta a página de código do apache para UTF-8.
+      lineinfile:
+        dest: "/etc/apache2/conf-enabled/charset.conf"
+        regexp: "^AddDefaultCharset"
+        line: "AddDefaultCharset UTF-8"
+        state: present
+      notify: restart apache

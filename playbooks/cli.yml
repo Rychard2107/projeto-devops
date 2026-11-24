@@ -1,0 +1,28 @@
+---
+- import_playbook: autofs.yml
+
+- name: Configura o cliente.
+  hosts: cli
+  become: true
+  handlers:
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted
+  tasks:
+    - name: Instala o firefox e o xauth.
+      package:
+        name:
+          - firefox-esr
+          - xauth
+        update_cache: yes
+        state: present
+
+    - name: Permite ao servidor ssh exportar aplicações X11.
+      copy:
+        content: |
+          X11Forwarding yes
+          X11UseLocalhost no
+        dest: "/etc/ssh/sshd_config.d/x11.conf"
+        mode: 0644
+      notify: restart ssh

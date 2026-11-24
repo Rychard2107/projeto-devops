@@ -1,0 +1,34 @@
+---
+- name: Configura o autofs para montar o compartilhamento nfs do servidor arq em /var/nfs.
+  hosts: all
+  become: true
+  handlers:
+    - name: restart autofs
+      service:
+        name: autofs
+        state: restarted
+  tasks:
+    - name: Instala o autofs.
+      package:
+        name: autofs
+        update_cache: yes
+        state: present
+
+    - name: Cria o mapa direto no auto.master.
+      copy:
+        content: "/- /etc/auto.nfs\n"
+        dest: "/etc/auto.master.d/nfs.autofs"
+        mode: 0644
+      notify: restart autofs
+
+    - name: Cria o mapa do compartilhamento nfs.
+      copy:
+        content: "/var/nfs -fstype=nfs4 arq.rychardson.zafler.devops:/dados/nfs\n"
+        dest: "/etc/auto.nfs"
+        mode: 0644
+      notify: restart autofs
+
+    - name: Habilita o serviço do autofs.
+      service:
+        name: autofs
+        enabled: yes
